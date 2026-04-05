@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+pandas
+numpy
+tensorflow
+keras
+pillow
+python-multipart
+sqlmodel
+passlib[bcrypt]
+python-jose[cryptography]
+scikit-learn
+plaid-python
+python-dotenv
