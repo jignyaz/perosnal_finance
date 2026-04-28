@@ -1,0 +1,6 @@
+date,amount,category,type,description
+2024-01-01,100,Food,expense,ISO format
+02-02-2024,200,Salary,income,DD-MM-YYYY format
+03/03/2024,300,Travel,expense,DD/MM/YYYY format
+04/04/2024 10:00:00,400,Health,expense,DateTime format
+2024-05-05T12:00:00Z,500,Gift,income,ISO Z format

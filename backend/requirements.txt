@@ -12,3 +12,4 @@ python-jose[cryptography]
 scikit-learn
 plaid-python
 python-dotenv
+google-generativeai

@@ -21,8 +21,11 @@ az acr build --registry $ACR_NAME --image finance-backend:v1 ./backend
 
 # 4. Deploy Backend to Container Apps
 az containerapp env create --name finance-env --resource-group $RESOURCE_GROUP --location $LOCATION
+$ACR_PASSWORD = (az acr credential show --name $ACR_NAME --query "passwords[0].value" -o tsv)
 az containerapp create --name $CONTAINER_APP_NAME --resource-group $RESOURCE_GROUP --environment finance-env `
-    --image "$ACR_LOGIN_SERVER/finance-backend:v1" --target-port 8000 --ingress external --query "properties.configuration.ingress.fqdn"
+    --image "$ACR_LOGIN_SERVER/finance-backend:v1" --target-port 8000 --ingress external `
+    --registry-server $ACR_LOGIN_SERVER --registry-username $ACR_NAME --registry-password $ACR_PASSWORD `
+    --query "properties.configuration.ingress.fqdn"
 
 $BACKEND_URL = (az containerapp show --name $CONTAINER_APP_NAME --resource-group $RESOURCE_GROUP --query properties.configuration.ingress.fqdn --output tsv)
 $BACKEND_FULL_URL = "https://$BACKEND_URL"
@@ -35,7 +38,7 @@ cd frontend
 # Note: You may need to run 'npm run build' first with VITE_API_URL set
 $env:VITE_API_URL = $BACKEND_FULL_URL
 npm run build
-az staticwebapp create --name $STATIC_WEB_APP_NAME --resource-group $RESOURCE_GROUP --location $LOCATION --source "./dist" --api-location "" --branch main
+az staticwebapp create --name $STATIC_WEB_APP_NAME --resource-group $RESOURCE_GROUP --location $LOCATION --source "./dist" --branch main
 
 Write-Host "--- Deployment Complete ---" -ForegroundColor Yellow
 Write-Host "Your application will be live shortly at the Static Web App URL."

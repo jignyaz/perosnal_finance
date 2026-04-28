@@ -41,7 +41,11 @@ const Register = () => {
             await login(formData.username, formData.password);
             navigate('/');
         } catch (err) {
-            setError(err.message || 'Quantum registration failed');
+            if (err.message === 'Failed to fetch') {
+                setError('Connection Refused: The backend server is not running. Please double-click "start.bat" in the project folder to start the API.');
+            } else {
+                setError(err.message || 'Registration protocol failure');
+            }
         }
     };
 

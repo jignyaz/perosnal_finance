@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const getHeaders = () => {
     const token = localStorage.getItem('token');
@@ -7,13 +7,14 @@ const getHeaders = () => {
 
 export const api = {
     login: async (username, password) => {
-        const formData = new FormData();
-        formData.append('username', username);
-        formData.append('password', password);
+        const params = new URLSearchParams();
+        params.append('username', username);
+        params.append('password', password);
 
         const response = await fetch(`${API_URL}/token`, {
             method: 'POST',
-            body: formData,
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params,
         });
         if (!response.ok) throw new Error('Login failed');
         return response.json();
@@ -197,6 +198,37 @@ export const api = {
             const error = await response.json();
             throw new Error(error.detail || 'Failed to fetch prediction');
         }
+        return response.json();
+    },
+
+    getPredictionV2: async () => {
+        const response = await fetch(`${API_URL}/predict-expenses-v2`, {
+            headers: getHeaders(),
+        });
+        if (response.status === 401) {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+            throw new Error('Session expired');
+        }
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to fetch AI prediction');
+        }
+        return response.json();
+    },
+
+    chat: async (message, current_page = "/") => {
+        const response = await fetch(`${API_URL}/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getHeaders() },
+            body: JSON.stringify({ message, current_page }),
+        });
+        if (response.status === 401) {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+            throw new Error('Session expired');
+        }
+        if (!response.ok) throw new Error('Chat request failed');
         return response.json();
     }
 };

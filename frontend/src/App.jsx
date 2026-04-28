@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { CurrencyProvider } from './context/CurrencyContext';
+import { NotificationProvider } from './context/NotificationContext';
 import Layout from './components/layout/Layout';
 import Dashboard from './components/dashboard/Dashboard';
 import Transactions from './components/transactions/Transactions';
@@ -12,6 +13,7 @@ import Budget from './pages/Budget';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import Payments from './pages/Payments';
+import AIAdvisor from './components/AIAdvisor';
 
 function App() {
   return (
@@ -19,20 +21,24 @@ function App() {
       <AuthProvider>
         <ThemeProvider>
           <CurrencyProvider>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+            <NotificationProvider>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
 
-              <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/transactions" element={<Transactions />} />
-                <Route path="/budgets" element={<Budget />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/payments" element={<Payments />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Route>
-            </Routes>
+                <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/transactions" element={<Transactions />} />
+                  <Route path="/budgets" element={<Budget />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/payments" element={<Payments />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Route>
+              </Routes>
+              {/* Global AI Advisor — visible on all authenticated pages */}
+              <AIAdvisor predictionData={null} />
+            </NotificationProvider>
           </CurrencyProvider>
         </ThemeProvider>
       </AuthProvider>

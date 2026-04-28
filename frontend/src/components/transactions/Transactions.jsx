@@ -56,11 +56,23 @@ const Transactions = () => {
         if (!file) return;
 
         try {
-            await api.uploadTransactions(file);
+            const response = await api.uploadTransactions(file);
+            
+            // Clear input so selecting the same file again triggers onChange
+            event.target.value = '';
+
+            let msg = response.message;
+            if (response.warnings && response.warnings.length > 0) {
+                msg += `\n\nWarnings (some rows skipped):\n` + response.warnings.join('\n');
+            }
+            
+            alert(msg);
             await loadTransactions();
             await checkBudgetLimit();
         } catch (error) {
             console.error('Upload failed:', error);
+            // Clear input on error too
+            event.target.value = '';
             alert('Upload failed: ' + error.message);
         }
     };

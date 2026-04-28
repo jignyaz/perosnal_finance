@@ -17,7 +17,11 @@ const Login = () => {
             await login(username, password);
             navigate('/');
         } catch (err) {
-            setError(err.message || 'Authentication protocol failure');
+            if (err.message === 'Failed to fetch') {
+                setError('Connection Refused: The backend server is not running. Please double-click "start.bat" in the project folder to start the API.');
+            } else {
+                setError(err.message || 'Authentication protocol failure');
+            }
         }
     };
 

@@ -1,0 +1,16 @@
+venv
+venv/
+venv_win
+venv_win/
+**/venv_win
+**/venv
+__pycache__
+__pycache__/
+**/*.pyc
+*.pyc
+.env
+.git
+.git/
+finance.db
+node_modules
+node_modules/

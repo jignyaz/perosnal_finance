@@ -1,6 +1,11 @@
 import os
 import io
 import csv
+from dotenv import load_dotenv
+
+# Load `.env` file variables so API keys can be used
+load_dotenv()
+
 # Suppress TensorFlow logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -8,7 +13,7 @@ from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
-from typing import List
+from typing import List, Optional
 try:
     import pandas as pd
 except ImportError:
@@ -34,6 +39,13 @@ from models import User, Transaction, BudgetItem, UserUpdate, TransactionCreate,
 from auth import get_current_user, create_access_token, get_password_hash, verify_password, ACCESS_TOKEN_EXPIRE_MINUTES
 from datetime import timedelta, datetime
 import plaid_integration as plaid_helper
+
+try:
+    from langchain_engine import run_langchain_enhancement, generate_chat_response, _get_llm, build_financial_context
+    LANGCHAIN_LOADED = True
+except Exception as e:
+    print(f"Gemini AI engine not loaded: {e}")
+    LANGCHAIN_LOADED = False
 
 app = FastAPI()
 
@@ -223,48 +235,93 @@ def delete_all_transactions(session: Session = Depends(get_session), current_use
     session.commit()
     return {"message": "All transactions deleted successfully"}
 
+def parse_date_robustly(date_str: str) -> datetime:
+    """Robust date parser using standard library only."""
+    if not date_str:
+        raise ValueError("Empty date string")
+    
+    # Try common formats
+    formats = [
+        "%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y", "%d/%m/%Y", 
+        "%Y/%m/%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f"
+    ]
+    
+    # Cleanup: remove Z, common timezone offsets for simple parsing
+    clean_str = date_str.replace("Z", "").split("+")[0].strip()
+    
+    for fmt in formats:
+        try:
+            return datetime.strptime(clean_str, fmt)
+        except ValueError:
+            continue
+            
+    # If all fail, try isoformat as a last resort
+    try:
+        return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+    except:
+        raise ValueError(f"Could not parse date: {date_str}")
+
 @app.post("/upload-transactions")
 async def upload_transactions(file: UploadFile = File(...), session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     try:
         content = await file.read()
-        # Decode bytes to string
-        decoded_content = content.decode('utf-8')
+        # Decode bytes with 'utf-8-sig' to automatically handle the BOM character (Byte Order Mark) from Excel
+        try:
+            decoded_content = content.decode('utf-8-sig')
+        except UnicodeDecodeError:
+            # Fallback for ISO-8859-1 (Common for older local spreadsheets)
+            decoded_content = content.decode('iso-8859-1')
         
         # Use csv module to parse
         csv_reader = csv.DictReader(io.StringIO(decoded_content))
         
         transactions = []
-        for row in csv_reader:
-            # Handle potential empty rows or missing fields gracefully
+        errors = []
+        for row_idx, row in enumerate(csv_reader, start=1):
             if not row:
                 continue
                 
-            # Parse date (try multiple formats or default to now)
-            date_str = row.get('date') or row.get('Date')
-            try:
-                if date_str:
-                    date_obj = pd.to_datetime(date_str) if pd else datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-                    # Fallback if pd is missing and isoformat fails, simple parser not implemented, using now
-                else:
-                    date_obj = datetime.utcnow()
-            except:
-                date_obj = datetime.utcnow()
+            # Helper: Case-insensitive and flexible key lookup
+            def get_val(keys):
+                for k in row.keys():
+                    if any(target.lower() in k.lower() for target in keys):
+                        return row[k]
+                return None
 
-            amount_val = row.get('amount') or row.get('Amount') or 0
+            # Parse date
+            date_str = get_val(['date'])
+            try:
+                date_obj = parse_date_robustly(date_str)
+            except Exception as e:
+                errors.append(f"Row {row_idx}: {str(e)}")
+                continue
+
+            # Parse amount (Flexible matching for Amt, Amount, Value)
+            amount_val = get_val(['amount', 'amt', 'value', 'total']) or 0
             
             t = Transaction(
                 user_id=current_user.id,
                 date=date_obj,
                 amount=float(amount_val),
-                category=str(row.get('category') or row.get('Category') or 'Uncategorized'),
-                type=str(row.get('type') or row.get('Type') or 'expense').lower(),
-                description=str(row.get('description') or row.get('Description') or 'Imported transaction')
+                category=str(get_val(['category', 'cat', 'type']) or 'Uncategorized'),
+                type=str(get_val(['type', 'kind']) or 'expense').lower(),
+                description=str(get_val(['description', 'desc', 'title', 'narration']) or 'Imported transaction')
             )
             session.add(t)
             transactions.append(t)
         
+        if len(transactions) == 0 and errors:
+            raise HTTPException(status_code=400, detail=f"Failed to import any transactions. Common issue: {errors[0]}")
+
         session.commit()
-        return {"message": f"Successfully imported {len(transactions)} transactions"}
+        
+        response = {"message": f"Successfully imported {len(transactions)} transactions"}
+        if errors:
+            response["warnings"] = errors[:5] # Cap warnings for readability
+                
+        return response
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -422,3 +479,171 @@ def predict_expenses(session: Session = Depends(get_session), current_user: User
         "baseline_used": round(float(baseline), 2),
         "predictions": predictions
     }
+
+
+@app.get("/predict-expenses-v2")
+def predict_expenses_v2(session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+    """
+    LangChain-enhanced prediction endpoint.
+    Runs the base ensemble, then applies Gemini AI reasoning for anomaly correction and insight generation.
+    """
+    transactions = session.exec(select(Transaction).where(
+        Transaction.user_id == current_user.id,
+        Transaction.type == 'expense'
+    )).all()
+
+    # Build monthly data
+    monthly_data = {}
+    category_data = {}
+    for t in transactions:
+        m_key = t.date.strftime("%Y-%m")
+        monthly_data[m_key] = monthly_data.get(m_key, 0) + abs(t.amount)
+        category_data[t.category] = category_data.get(t.category, 0) + abs(t.amount)
+
+    sorted_months = sorted(monthly_data.keys())
+    historical_vals = [monthly_data[m] for m in sorted_months]
+
+    # Compute baseline (reuse statistical fallback logic)
+    user_floor = current_user.fixed_monthly_burn or 2000.0
+    if historical_vals:
+        if len(historical_vals) >= 2:
+            baseline = float(historical_vals[-1] * 0.6 + historical_vals[-2] * 0.4)
+        else:
+            baseline = float(historical_vals[-1])
+    else:
+        baseline = user_floor
+
+    baseline = max(baseline, user_floor)
+
+    # Build user profile dict for LangChain
+    user_profile = {
+        "employment_type": current_user.employment_type,
+        "financial_goal": current_user.financial_goal,
+        "risk_tolerance": current_user.risk_tolerance,
+        "fixed_monthly_burn": current_user.fixed_monthly_burn,
+        "monthly_budget": current_user.monthly_budget,
+    }
+
+    # Run LangChain enhancement
+    ai_result = {}
+    if LANGCHAIN_LOADED and monthly_data:
+        try:
+            ai_result = run_langchain_enhancement(
+                monthly_expenses=monthly_data,
+                category_breakdown=category_data,
+                user_profile=user_profile,
+                baseline_prediction=baseline
+            )
+            # Use the AI-adjusted prediction as the new baseline
+            if ai_result.get("langchain_active") and ai_result.get("adjusted_prediction"):
+                baseline = float(ai_result["adjusted_prediction"])
+        except Exception as e:
+            print(f"LangChain enhancement failed: {e}")
+
+    # Generate 6-month forecast with adjusted baseline
+    predictions = []
+    risk_factor = getattr(current_user, 'risk_tolerance', 1.0)
+    growth_rate = 1.01
+    if current_user.financial_goal == 'savings':
+        growth_rate = 0.99
+    elif current_user.financial_goal == 'lifestyle':
+        growth_rate = 1.03
+
+    if transactions:
+        last_date = max(t.date for t in transactions).replace(day=1)
+    else:
+        last_date = datetime.utcnow().replace(day=1)
+
+    current_date = last_date
+    for i in range(1, 7):
+        if current_date.month == 12:
+            current_date = current_date.replace(year=current_date.year + 1, month=1)
+        else:
+            current_date = current_date.replace(month=current_date.month + 1)
+
+        val = float(baseline * (growth_rate ** i))
+        predictions.append({
+            "month": str(current_date.strftime("%Y-%m")),
+            "predicted_amount": round(val, 2),
+            "lower_bound": round(val * (0.85 / risk_factor), 2),
+            "upper_bound": round(val * (1.15 * risk_factor), 2)
+        })
+
+    return {
+        "status": "success",
+        "method": "LangChain-Enhanced Ensemble (Gemini + ARIMA + LSTM)",
+        "user_goal": current_user.financial_goal,
+        "input_samples": int(len(historical_vals)),
+        "baseline_used": round(float(baseline), 2),
+        "predictions": predictions,
+        "ai_enhancement": ai_result
+    }
+
+
+from pydantic import BaseModel as PydanticBaseModel
+
+class ChatRequest(PydanticBaseModel):
+    message: str
+    current_page: Optional[str] = "/"
+
+@app.post("/chat")
+def chat_with_ai(
+    request: ChatRequest,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Natural language Q&A about the user's finances using Gemini."""
+    api_key = os.getenv("GOOGLE_API_KEY", "")
+    if not LANGCHAIN_LOADED:
+        return {"response": "Gemini AI engine is not available."}
+    if not api_key:
+        return {"response": "Gemini API key not configured. Add GOOGLE_API_KEY to your backend/.env file and restart the server."}
+
+    # Build context from the user's transactions
+    transactions = session.exec(select(Transaction).where(Transaction.user_id == current_user.id)).all()
+
+    monthly_expenses = {}
+    category_data = {}
+    for t in transactions:
+        if t.type == 'expense':
+            m_key = t.date.strftime("%Y-%m")
+            monthly_expenses[m_key] = monthly_expenses.get(m_key, 0) + abs(t.amount)
+            category_data[t.category] = category_data.get(t.category, 0) + abs(t.amount)
+
+    total_income = sum(abs(t.amount) for t in transactions if t.type == 'income')
+    total_expense = sum(abs(t.amount) for t in transactions if t.type == 'expense')
+
+    user_profile = {
+        "employment_type": current_user.employment_type,
+        "financial_goal": current_user.financial_goal,
+        "risk_tolerance": current_user.risk_tolerance,
+        "fixed_monthly_burn": current_user.fixed_monthly_burn,
+        "monthly_budget": current_user.monthly_budget,
+    }
+
+    # Calculate a baseline for the chat context (similar to predict_expenses_v2)
+    user_floor = current_user.fixed_monthly_burn or 2000.0
+    sorted_months = sorted(monthly_expenses.keys())
+    historical_vals = [monthly_expenses[m] for m in sorted_months]
+    
+    if historical_vals:
+        if len(historical_vals) >= 2:
+            baseline = float(historical_vals[-1] * 0.6 + historical_vals[-2] * 0.4)
+        else:
+            baseline = float(historical_vals[-1])
+    else:
+        baseline = user_floor
+    baseline = max(baseline, user_floor)
+
+    context = build_financial_context(monthly_expenses, category_data, user_profile, baseline)
+
+    # Include Budgets in the context
+    budgets = session.exec(select(BudgetItem).where(BudgetItem.user_id == current_user.id)).all()
+    budget_str = "\n".join([f" - {b.title}: ₹{b.amount:,.0f} ({'Paid' if b.is_paid else 'Unpaid'}, Due: {b.due_date.strftime('%Y-%m-%d')})" for b in budgets])
+
+    # Enhanced context string
+    full_context = f"{context}\n\nACTIVE BUDGETS:\n{budget_str if budget_str else 'No active budgets set.'}\n\nCURRENT VIEW: {request.current_page}"
+    tx_summary = f"Total income: ₹{total_income:,.0f} | Total expenses: ₹{total_expense:,.0f} | Net: ₹{total_income - total_expense:,.0f}"
+
+    response = generate_chat_response(request.message, full_context, tx_summary, api_key)
+    return {"response": response}
