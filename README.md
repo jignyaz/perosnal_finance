@@ -305,6 +305,29 @@ The application will be served at **`http://localhost:8000`**.
 
 ---
 
+### 4. ⚡ Vercel Deployment (Frontend SPA)
+
+The frontend includes pre-configured `vercel.json` rewrite routing for zero-config deployment to [Vercel](https://vercel.com):
+
+#### Method A: 1-Click GitHub Import
+1. Go to [vercel.com/new](https://vercel.com/new) and click **Import** next to `jignyaz/personal_finance`.
+2. Configure Project:
+   - **Framework Preset**: `Vite`
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+3. Add Environment Variable:
+   - `VITE_API_URL` = `<YOUR_DEPLOYED_BACKEND_URL>` (e.g. `https://finance-backend-app-2026.azurewebsites.net`)
+4. Click **Deploy**.
+
+#### Method B: Vercel CLI
+```bash
+cd frontend
+npx vercel --prod
+```
+
+---
+
 ## 🧪 Automated Testing & Diagnostic Suite
 
 The project includes an enterprise test runner verifying authentication, security hardening, multi-tenant database isolation, AI forecasting mathematics, and bank reconciliation simulations:
