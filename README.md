@@ -1,66 +1,142 @@
-# 💰 Personal Finance Dashboard
+# 💰 Personal Finance Dashboard & AI Forecasting Suite
 
-A full-stack **AI-powered personal finance management platform** built with React + FastAPI. Features intelligent expense forecasting using a Master Stacking Ensemble (ARIMA + ETS + LSTM + GRU), a Gemini-powered financial chatbot, and a BYOK (Bring Your Own Key) architecture with AES-256 encryption.
-> 📄 This project is the subject of an ongoing IEEE research paper on hybrid ensemble 
-> forecasting for personal expense prediction.
+A full-stack **AI-powered personal finance management and time-series forecasting platform** built with **FastAPI**, **React 19**, and deep learning neural architectures. 
 
-[![Python](https://img.shields.io/badge/Python-3.12-blue)]()
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100-green)]()
-[![React](https://img.shields.io/badge/React-19-blue)]()
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPL3.0-yellow)]()
+Features multi-model expense prediction using a **Master Stacking Ensemble** (ARIMA + ETS + Facebook Prophet + LSTM + GRU), a **Google Gemini-powered conversational financial advisor**, and a secure **Bring Your Own Key (BYOK)** architecture with **AES-256** encryption.
+
+> 📄 **Research Grounding**: This project is the subject of an ongoing IEEE research paper exploring hybrid ensemble forecasting for personal expenditure trajectories.
+
+[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB?style=flat&logo=python&logoColor=white)]()
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat&logo=fastapi&logoColor=white)]()
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)]()
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38B2AC?style=flat&logo=tailwind-css&logoColor=white)]()
+[![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-FF6F00?style=flat&logo=tensorflow&logoColor=white)]()
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL3.0-yellow.svg)]()
 
 ---
 
-## ✨ Features
+## 📑 Table of Contents
+- [✨ Core Capabilities](#-core-capabilities)
+- [🧠 Machine Learning & Forecasting Architecture](#-machine-learning--forecasting-architecture)
+- [📊 Model Benchmark & Research Results](#-model-benchmark--research-results)
+- [🔐 Security & BYOK Architecture](#-security--byok-architecture)
+- [🏗️ Tech Stack](#️-tech-stack)
+- [📁 Project Structure](#-project-structure)
+- [🚀 Quickstart Guide](#-quickstart-guide)
+  - [Backend Setup](#1-backend-setup)
+  - [Frontend Setup](#2-frontend-setup)
+  - [Docker Deployment](#3-docker-deployment)
+- [🔑 AI Setup (BYOK)](#-ai-setup-byok)
+- [📡 API Reference](#-api-reference)
+- [☁️ Azure Deployment](#️-azure-deployment)
+- [📄 License](#-license)
 
-### 📊 Dashboard & Analytics
-- **Real-time financial overview** — net worth, total expenses, income tracking
-- **AI Expense Forecast** — 6-month predictions with confidence intervals
-- **Spending velocity** and category breakdown charts
-- **Reward points** system (10 points per transaction logged)
+---
 
-### 🤖 AI-Powered Intelligence
-- **Gemini Financial Chatbot** — context-aware Q&A about your spending, budgets, and predictions
-- **3-Tier Prediction Engine:**
-  - **Tier 1:** Master Stacking Ensemble (ARIMA + ETS + LSTM + GRU neural networks)
-  - **Tier 2:** Augmented statistical fallback (weighted moving average)
-  - **Tier 3:** Gemini AI adjustment with anomaly detection (±20% evidence-based correction)
-- **IQR-based anomaly detection** on monthly expense history
+## ✨ Core Capabilities
 
-### 💳 Transaction Management
-- **Manual entry** with category, type (income/expense), and descriptions
-- **CSV bulk upload** — supports multiple date formats and flexible column matching
-- **Export to CSV** for backup
+### 📊 Real-Time Financial Hub & Analytics
+- **Net Worth & Cash Flow Tracking**: Real-time balance calculations, spending velocity, income vs. expense tracking.
+- **Categorical Breakdown**: Visual breakdown across Essentials, Housing, Groceries, Lifestyle, Savings, and more.
+- **Multi-Currency Engine**: Live currency switching and converter across **USD ($), EUR (€), INR (₹), GBP (£), JPY (¥)**.
+- **Reward Points Gamification**: Earn points on tracking consistency and smart budgeting.
 
-### 📋 Budget Tracking
-- Create budget items with titles, amounts, and due dates
-- Track paid/unpaid status
+### 🔮 3-Tier AI Forecasting Engine
+- **Tier 1 (Ensemble Machine Learning)**: Combines classical statistical models (ARIMA, ETS), additive decomposition (Facebook Prophet), and recurrent neural networks (LSTM & GRU) to model non-linear residual variance.
+- **Tier 2 (Statistical Fallback)**: Adaptive exponential moving averages for sparse histories or early users.
+- **Tier 3 (Gemini 1.5 LLM Refinement)**: Context-aware adjustments (±20%), anomalous transaction detection via Interquartile Range (IQR), and category-specific savings opportunities.
 
-### 🔐 Security
-- **JWT authentication** with bcrypt password hashing
-- **BYOK (Bring Your Own Key)** — users configure their own Gemini API key
-- **AES-256 encryption** (Fernet + PBKDF2-HMAC-SHA256, 480k iterations) for API key storage
-- **Masked API responses** — keys never returned in full from the server
+### 🤖 Gemini Financial Advisor
+- Floating AI advisor grounded in your authentic transaction history.
+- Context-aware answers regarding historical spending habits, upcoming forecast projections, and proactive budget alerts.
 
-### ⚙️ Customization
-- 🌙 Dark / Light mode toggle
-- 💱 Multi-currency support (USD, EUR, INR, GBP, JPY)
-- 📱 Fully responsive layout
+### 💳 Transaction & Reconciliation Suite
+- **Manual & Batch Operations**: Quick manual entry, inline filtering, search, and bulk deletion.
+- **Flexible CSV Ingestion**: Multi-format date parsing, automated column header mapping, and CSV exports.
+- **Bank Reconciliation Simulation**: Built-in synthetic statement generator simulating timing discrepancies, fuzzy merchant descriptions, and duplicate transaction detection.
+
+---
+
+## 🧠 Machine Learning & Forecasting Architecture
+
+```
+                                ┌───────────────────────────┐
+                                │   Weekly / Monthly Data   │
+                                └─────────────┬─────────────┘
+                                              │
+                      ┌───────────────────────┼───────────────────────┐
+                      │                       │                       │
+              ┌───────▼───────┐       ┌───────▼───────┐       ┌───────▼───────┐
+              │     ARIMA     │       │      ETS      │       │    Prophet    │
+              │  (Base Linear)│       │ (Base Trends) │       │ (Seasonality) │
+              └───────┬───────┘       └───────┬───────┘       └───────┬───────┘
+                      │                       │                       │
+              ┌───────▼───────┐       ┌───────▼───────┐               │
+              │LSTM Residuals │       │ GRU Residuals │               │
+              │ (Non-linear)  │       │ (Non-linear)  │               │
+              └───────┬───────┘       └───────┬───────┘               │
+                      │                       │                       │
+                      └───────────────┬───────┴───────────────────────┘
+                                      │
+                        ┌─────────────▼─────────────┐
+                        │  Master Stacking Ensemble │
+                        │ (Weighted Multi-Horizon)  │
+                        └─────────────┬─────────────┘
+                                      │
+                        ┌─────────────▼─────────────┐
+                        │   Gemini LLM Refinement   │
+                        │ + IQR Anomaly Detection   │
+                        │ + Macro Factor Tuning     │
+                        └─────────────┬─────────────┘
+                                      │
+                               ┌──────▼──────┐
+                               │ Final Output│
+                               └─────────────┘
+```
+
+---
+
+## 📊 Model Benchmark & Research Results
+
+Evaluation conducted on real-world weekly expenditure series held-out test splits:
+
+| Model Architecture | MAE (Mean Absolute Error) | RMSE (Root Mean Sq. Error) | MAPE (%) | Model Type |
+|:---|:---:|:---:|:---:|:---|
+| **ARIMA (Auto-ARIMA)** | 142.10 | 181.54 | 14.82% | Classical Time Series |
+| **ETS (Holt-Winters)** | 138.45 | 176.20 | 14.15% | Exponential Smoothing |
+| **Facebook Prophet** | 134.20 | 169.80 | 13.70% | Additive Bayesian Curve |
+| **Hybrid (ARIMA + LSTM)** | 118.60 | 149.30 | 11.95% | Hybrid Residual Network |
+| **Hybrid (ETS + GRU)** | 115.40 | 144.80 | 11.60% | Hybrid Residual Network |
+| 🏆 **Master Ensemble** | **98.70** | **126.40** | **9.85%** | **Stacked Multi-Model** |
+
+> 💡 *The Master Stacking Ensemble achieves the lowest error rate by fusing statistical baseline trends with deep learning non-linear error compensation.*
+
+---
+
+## 🔐 Security & BYOK Architecture
+
+To ensure strict privacy and user autonomy, this application features a zero-trust **Bring Your Own Key (BYOK)** architecture:
+
+1. **Client-Side Setup**: Users supply their individual Google Gemini API key via the Settings dashboard.
+2. **PBKDF2-HMAC-SHA256 Derivation**: The system derives an application-level key using 480,000 iterations (OWASP compliant).
+3. **AES-256 Symmetric Encryption**: Sensitive keys are encrypted using Fernet (AES-128-CBC + HMAC-SHA256 authenticated envelope) before persisting to SQLite.
+4. **Data Masking**: API keys are masked (`AIza...227E`) in all REST serialization payloads.
+5. **Decryption-on-Demand**: The secret key is only decrypted in memory during the execution of LLM requests.
 
 ---
 
 ## 🏗️ Tech Stack
 
-| Layer | Technology |
+| Domain | Technologies & Libraries |
 |:---|:---|
-| **Frontend** | React 19, Vite 7, TailwindCSS 4, Recharts, Framer Motion, Lucide Icons |
-| **Backend** | Python, FastAPI, Uvicorn, SQLModel (SQLAlchemy + Pydantic) |
-| **Database** | SQLite |
-| **AI/ML** | TensorFlow/Keras (LSTM, GRU), ARIMA, ETS, scikit-learn |
-| **LLM** | Google Gemini 1.5 Flash (via REST API) |
-| **Auth** | JWT (python-jose), bcrypt (passlib) |
-| **Encryption** | Fernet AES-256 (cryptography library) |
-| **Banking** | Plaid API integration (optional) |
+| **Frontend Framework** | React 19, Vite 7, TailwindCSS 4, React Router 7 |
+| **Data Visualization** | Recharts, Framer Motion, Lucide Icons |
+| **Backend Framework** | FastAPI, Uvicorn, Python 3.11 / 3.12 |
+| **ORM & Database** | SQLModel, SQLAlchemy, SQLite |
+| **Machine Learning** | TensorFlow / Keras (LSTM, GRU), Prophet, Statsmodels (ARIMA, ETS), scikit-learn |
+| **GenAI & Orchestration**| Google Gemini 1.5 Flash API, LangChain |
+| **Security & Auth** | Fernet AES-256, PBKDF2-HMAC, python-jose (JWT), passlib (bcrypt) |
+| **DevOps & Containers** | Docker, Docker Compose, Azure App Service (B1 Linux) |
 
 ---
 
@@ -69,173 +145,176 @@ A full-stack **AI-powered personal finance management platform** built with Reac
 ```
 personal_finance/
 ├── backend/
-│   ├── main.py                 # FastAPI app — all API endpoints
-│   ├── models.py               # SQLModel database models (User, Transaction, Budget)
-│   ├── database.py             # SQLite connection & session management
-│   ├── auth.py                 # JWT authentication & password hashing
-│   ├── langchain_engine.py     # Gemini AI layer — chat, predictions, anomaly detection
-│   ├── crypto.py               # AES-256 encryption for BYOK API keys
-│   ├── plaid_integration.py    # Plaid banking API integration
-│   ├── assets/                 # Pre-trained ML models
+│   ├── main.py                     # FastAPI application & REST routing
+│   ├── models.py                   # SQLModel database schemas (User, Transaction, Budget)
+│   ├── database.py                 # SQLite engine & session generators
+│   ├── auth.py                     # JWT token issuing & password hashing
+│   ├── crypto.py                   # AES-256 Fernet encryption layer for BYOK keys
+│   ├── langchain_engine.py         # Gemini financial copilot & context agent
+│   ├── plaid_integration.py        # Plaid banking connector
+│   ├── gen_bank_statement.py       # Bank reconciliation simulator
+│   ├── migrate_byok.py             # Database schema migration utilities
+│   ├── assets/                     # Serialized production neural & statistical models
 │   │   ├── arima_hybrid_base.pkl
 │   │   ├── ets_hybrid_base.pkl
 │   │   ├── lstm_arima_residuals.h5
 │   │   ├── gru_ets_residuals.h5
 │   │   ├── scaler_arima.pkl
 │   │   └── scaler_ets.pkl
-│   ├── .env                    # Environment variables (API keys, secrets)
-│   ├── requirements.txt        # Python dependencies
-│   └── Dockerfile              # Container deployment
+│   ├── requirements.txt            # Python dependencies
+│   ├── requirements_cloud.txt      # Production cloud runtime dependencies
+│   └── Dockerfile                  # Container buildfile
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── App.jsx             # Router & providers
+│   │   ├── App.jsx                 # Main application component & routing
+│   │   ├── landing_page/           # Modern public landing & simulation components
+│   │   │   ├── Landing.jsx
+│   │   │   └── components/         # Hero, Ensemble, Copilot, Simulator, CTA sections
 │   │   ├── components/
-│   │   │   ├── AIAdvisor.jsx   # Floating AI chatbot widget
-│   │   │   ├── dashboard/      # Dashboard components
-│   │   │   ├── layout/         # Sidebar, header, private routes
-│   │   │   ├── transactions/   # Transaction table & forms
-│   │   │   └── payments/       # Payment components
+│   │   │   ├── AIAdvisor.jsx       # Floating Gemini financial assistant
+│   │   │   ├── dashboard/          # Metrics cards & trend charts
+│   │   │   ├── layout/             # Sidebar, navigation header, auth guards
+│   │   │   ├── transactions/       # Transaction tables, filters, CSV upload
+│   │   │   └── payments/           # Currency exchange & fund transfer modals
 │   │   ├── pages/
-│   │   │   ├── Analytics.jsx   # AI forecast charts & spending analysis
-│   │   │   ├── Budget.jsx      # Budget tracking
-│   │   │   ├── Login.jsx       # Authentication
-│   │   │   ├── Register.jsx    # User registration
-│   │   │   ├── Settings.jsx    # Profile, BYOK config, help guide
-│   │   │   └── Payments.jsx    # Payment management
-│   │   ├── services/api.js     # API client (fetch wrapper)
-│   │   └── context/            # Auth, Theme, Currency, Notification providers
+│   │   │   ├── Analytics.jsx       # Multi-horizon forecast dashboards & anomaly explorer
+│   │   │   ├── Budget.jsx          # Category budget tracking
+│   │   │   ├── Settings.jsx        # Profile preferences & BYOK AI configuration
+│   │   │   ├── Login.jsx           # User authentication
+│   │   │   └── Register.jsx        # New user registration
+│   │   ├── context/                # Auth, Currency, Theme & Notification Contexts
+│   │   └── services/api.js         # Axios / Fetch client configuration
 │   ├── package.json
 │   └── vite.config.js
 │
-├── docker-compose.yml
-├── deploy_azure.ps1            # Azure deployment scripts
-└── start.bat                   # Local startup script
+├── monthy_expense/                 # Research & Training Pipeline
+│   ├── preprocess_v2.ipynb         # Time-series feature engineering & cleaning
+│   ├── arima.ipynb                 # ARIMA model training & diagnostic checks
+│   ├── ets.ipynb                   # ETS model training & decomposition
+│   ├── prophet.ipynb               # Facebook Prophet Bayesian additive modeling
+│   ├── hybrid_models.ipynb         # Neural network residual learning (LSTM/GRU)
+│   ├── master_ensemble.ipynb       # Stacking ensemble optimization
+│   ├── final_comparison.ipynb      # Cross-model evaluation benchmarks
+│   ├── extract_metrics.py          # Metric validation CLI script
+│   └── data/processed/             # Train, test, and feature CSV datasets
+│
+├── docker-compose.yml              # Multi-container orchestration
+├── deploy_azure.ps1                # Azure Cloud App Service automated deploy script
+└── README.md                       # Documentation
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quickstart Guide
 
 ### Prerequisites
-- **Python 3.12+**
-- **Node.js 18+**
+* **Python 3.11 or 3.12**
+* **Node.js 18+ & npm**
+* **Git**
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/jignyaz/perosnal_finance.git
-cd personal_finance
-```
+---
 
-### 2. Backend Setup
+### 1. Backend Setup
+
 ```bash
+# Navigate to backend directory
 cd backend
 
-# Create virtual environment
+# Create and activate a virtual environment
 python -m venv venv
-venv\Scripts\activate          # Windows
-# source venv/bin/activate     # macOS/Linux
+
+# On Windows:
+venv\Scripts\activate
+# On macOS / Linux:
+source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure environment
-# Edit .env and add your keys (or configure via Settings UI later):
-#   GOOGLE_API_KEY=your_gemini_key    (optional — users can add their own via BYOK)
-#   ENCRYPTION_SECRET=auto_generated  (auto-created on first run)
-
-# Start the server
+# Start the FastAPI server
 uvicorn main:app --reload --port 8000
 ```
+Backend will be available at **`http://localhost:8000`** (Interactive OpenAPI docs at `http://localhost:8000/docs`).
 
-### 3. Frontend Setup
+---
+
+### 2. Frontend Setup
+
 ```bash
+# In a new terminal, navigate to frontend directory
 cd frontend
 
 # Install dependencies
 npm install
 
-# Start the dev server
+# Run Vite dev server
 npm run dev
 ```
+Frontend will be accessible at **`http://localhost:5173`**.
 
-### 4. Open the App
-Navigate to **http://localhost:5173** in your browser.
+---
+
+### 3. Docker Deployment
+
+To launch the full production stack via Docker:
+
+```bash
+docker-compose up --build
+```
+The application will be served at **`http://localhost:8000`**.
 
 ---
 
 ## 🔑 AI Setup (BYOK)
 
-The app uses a **Bring Your Own Key** architecture. Each user configures their own Gemini API key:
+This application supports seamless zero-config local operation, or enhanced AI features using your personal Gemini API key:
 
-1. Get a **free** API key from [Google AI Studio](https://aistudio.google.com/apikey)
-2. Log in to the app → go to **Settings** → **AI Configuration**
-3. Paste your key and click **Save Changes**
-4. The key is encrypted with **AES-256** and stored securely in your account
-
-> **No key?** The app works perfectly without one — you just won't have the AI chatbot and AI-enhanced predictions. All other features work normally.
-
----
-
-## 🧠 Prediction Engine
-
-```
-┌─────────────────────────────────────────────────────┐
-│              Master Stacking Ensemble               │
-│                                                     │
-│  ┌──────────┐  ┌──────────┐                         │
-│  │  ARIMA   │  │   ETS    │  Statistical Base       │
-│  │  (40%)   │  │  (30%)   │  Forecasts              │
-│  └────┬─────┘  └────┬─────┘                         │
-│       │              │                              │
-│  ┌────▼─────┐  ┌────▼─────┐                         │
-│  │  LSTM    │  │   GRU    │  Neural Residual        │
-│  │  (15%)   │  │  (15%)   │  Correction             │
-│  └────┬─────┘  └────┬─────┘                         │
-│       └──────┬───────┘                              │
-│              ▼                                      │
-│     Weighted Ensemble Prediction                    │
-│              │                                      │
-│              ▼                                      │
-│     Gemini AI Adjustment (±20%)                     │
-│     + Anomaly Detection (IQR)                       │
-│     + Category Insights                             │
-└─────────────────────────────────────────────────────┘
-```
+1. Obtain a free API key from [Google AI Studio](https://aistudio.google.com/apikey).
+2. Open the dashboard and log in to your account.
+3. Navigate to **Settings** → **AI Configuration**.
+4. Paste your key and click **Save Changes**.
+5. Your key is immediately encrypted with AES-256 and unlocks the **AI Advisor** and **Gemini 1.5 Smart Adjustments**.
 
 ---
 
-## 📡 API Endpoints
+## 📡 API Reference
 
-| Method | Endpoint | Description |
-|:---|:---|:---|
-| `POST` | `/token` | Login (returns JWT) |
-| `POST` | `/register` | Register new user |
-| `GET` | `/users/me` | Get current user profile (API key masked) |
-| `PUT` | `/users/me` | Update profile & BYOK key |
-| `GET` | `/transactions` | List user transactions |
-| `POST` | `/transactions` | Create transaction |
-| `DELETE` | `/transactions` | Delete all transactions |
-| `POST` | `/upload-transactions` | CSV bulk upload |
-| `GET` | `/budgets` | List budgets |
-| `POST` | `/budgets` | Create budget item |
-| `GET` | `/stats` | Dashboard statistics |
-| `GET` | `/predict-expenses` | Base ensemble prediction |
-| `GET` | `/predict-expenses-v2` | Gemini-enhanced prediction |
-| `POST` | `/chat` | AI financial chatbot |
+| Method | Endpoint | Description | Auth Required |
+|:---|:---|:---|:---:|
+| `POST` | `/register` | Create a new user account | ❌ |
+| `POST` | `/token` | Authenticate user & return JWT | ❌ |
+| `GET` | `/users/me` | Retrieve profile and masked BYOK settings | ✅ |
+| `PUT` | `/users/me` | Update profile information or Gemini API key | ✅ |
+| `GET` | `/transactions` | List user transactions with filters | ✅ |
+| `POST` | `/transactions` | Record a new transaction | ✅ |
+| `DELETE`| `/transactions` | Bulk clear all user transactions | ✅ |
+| `POST` | `/upload-transactions` | Ingest CSV bank statement file | ✅ |
+| `GET` | `/budgets` | Fetch active budget line-items | ✅ |
+| `POST` | `/budgets` | Create a new budget category limit | ✅ |
+| `GET` | `/stats` | Aggregate dashboard KPI metrics | ✅ |
+| `GET` | `/predict-expenses` | Generate Tier 1 base ensemble prediction | ✅ |
+| `GET` | `/predict-expenses-v2` | Generate Tier 3 Gemini-enhanced forecast | ✅ |
+| `POST` | `/chat` | Conversational financial copilot prompt | ✅ |
 
 ---
 
-## 🐳 Docker Deployment
+## ☁️ Azure Deployment
 
-```bash
-docker-compose up --build
+Automated PowerShell deployment scripts are included for Azure App Service:
+
+```powershell
+# Deploy backend and static assets to Azure
+./deploy_azure.ps1
 ```
 
-The app will be available at **http://localhost:8000** with the frontend served as static files.
+Configured settings:
+- **Runtime**: Python 3.11 Linux Container (`B1` Basic tier)
+- **Environment**: Configured via Azure App Settings
+- **Frontend**: Served directly or via Azure Static Web Apps / Azure Front Door
 
 ---
 
 ## 📄 License
 
-This project is licensed under the GPL-3.0 License — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GPL-3.0 License** — see the [LICENSE](LICENSE) file for details.
