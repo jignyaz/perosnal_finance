@@ -55,7 +55,7 @@ const HeroSection = () => {
                             className="w-full sm:w-auto flex items-center justify-center gap-3 bg-accent hover:bg-accent/90 text-slate-950 font-black text-sm uppercase tracking-wider px-8 py-4 rounded-2xl shadow-2xl shadow-accent/30 hover:shadow-accent/60 transition-all border border-white/20"
                         >
                             <Zap className="w-5 h-5 fill-current animate-bounce-slow" />
-                            <span>{user ? "Go to Dashboard" : "Get Started"}</span>
+                            <span>{user ? "Go to Dashboard" : "Create Free Account"}</span>
                             <ArrowRight className="w-4 h-4" />
                         </Link>
                     </motion.div>
@@ -74,6 +74,19 @@ const HeroSection = () => {
                         </a>
                     </motion.div>
                 </div>
+
+                {!user && (
+                    <div className="mt-4 text-center">
+                        <Link
+                            to="/login"
+                            className="text-xs font-bold text-slate-400 hover:text-accent transition-colors inline-flex items-center gap-1.5"
+                        >
+                            <span>Already registered?</span>
+                            <span className="text-white underline underline-offset-4 decoration-accent">Sign In Here</span>
+                            <ArrowRight className="w-3 h-3 text-accent" />
+                        </Link>
+                    </div>
+                )}
 
                 {/* Reassurance points */}
                 <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-xs font-bold text-slate-400">

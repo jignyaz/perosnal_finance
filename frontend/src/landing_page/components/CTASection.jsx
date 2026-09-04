@@ -40,7 +40,7 @@ const CTASection = () => {
                                 className="w-full sm:w-auto flex items-center justify-center gap-3 bg-accent hover:bg-accent/90 text-slate-950 font-black text-sm uppercase tracking-wider px-10 py-5 rounded-2xl shadow-2xl shadow-accent/40 transition-all border border-white/20"
                             >
                                 <Zap className="w-5 h-5 fill-current animate-bounce-slow" />
-                                <span>{user ? "Open Your Dashboard" : "Get Started"}</span>
+                                <span>{user ? "Open Your Dashboard" : "Register Now — It's Free"}</span>
                                 <ArrowRight className="w-4 h-4" />
                             </Link>
                         </motion.div>
@@ -48,9 +48,9 @@ const CTASection = () => {
                         <motion.div whileHover={{ scale: 1.05 }}>
                             <Link
                                 to="/login"
-                                className="w-full sm:w-auto text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-white px-6 py-4 transition-colors block"
+                                className="w-full sm:w-auto text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white px-6 py-4 rounded-xl border border-white/10 hover:border-white/25 transition-all block bg-white/5"
                             >
-                                Already have an account? Sign In
+                                Already have an account? Log In
                             </Link>
                         </motion.div>
                     </div>

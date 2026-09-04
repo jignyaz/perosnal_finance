@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, ArrowRight } from 'lucide-react';
+import { LayoutDashboard, ArrowRight, UserPlus, LogIn } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const LandingHeader = () => {
@@ -59,9 +59,9 @@ const LandingHeader = () => {
                 </nav>
 
                 {/* Right Action Buttons */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
                     {/* Currency Indicator */}
-                    <div className="hidden sm:flex items-center bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-1.5 shadow-inner">
+                    <div className="hidden lg:flex items-center bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-1.5 shadow-inner">
                         <span className="text-xs font-black text-emerald-400 mr-1.5 font-display">₹</span>
                         <span className="text-xs font-bold text-white">INR (₹)</span>
                     </div>
@@ -77,13 +77,14 @@ const LandingHeader = () => {
                             </Link>
                         </motion.div>
                     ) : (
-                        <div className="flex items-center gap-3">
-                            <motion.div whileHover={{ scale: 1.05 }}>
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                                 <Link
                                     to="/login"
-                                    className="text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white px-3 py-2 transition-colors"
+                                    className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/10"
                                 >
-                                    Log In
+                                    <LogIn className="w-3.5 h-3.5 text-accent" />
+                                    <span>Log In</span>
                                 </Link>
                             </motion.div>
                             <motion.div whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.95 }}>
@@ -91,8 +92,8 @@ const LandingHeader = () => {
                                     to="/register"
                                     className="flex items-center gap-2 bg-accent hover:bg-accent/90 text-slate-950 font-black text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl shadow-lg shadow-accent/30 transition-all border border-white/20"
                                 >
-                                    <span>Get Started</span>
-                                    <ArrowRight className="w-3.5 h-3.5" />
+                                    <UserPlus className="w-4 h-4" />
+                                    <span>Register</span>
                                 </Link>
                             </motion.div>
                         </div>
