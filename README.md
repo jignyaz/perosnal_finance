@@ -305,6 +305,27 @@ The application will be served at **`http://localhost:8000`**.
 
 ---
 
+## 🧪 Automated Testing & Diagnostic Suite
+
+The project includes an enterprise test runner verifying authentication, security hardening, multi-tenant database isolation, AI forecasting mathematics, and bank reconciliation simulations:
+
+```bash
+cd backend
+python run_tests.py
+```
+
+### Test Coverage Breakdown:
+| Test Module | Coverage Area | Key Assertions |
+|:---|:---|:---|
+| **`test_auth_suite.py`** | Authentication & Tokens | Password hashing (Bcrypt), JWT generation/claims/UTC expiration, HttpOnly cookie injection & deletion. |
+| **`test_security_suite.py`** | Security Hardening | In-memory sliding window rate limiter, PII sanitization (cards, SSN, PAN, emails, phones), per-user salt encryption, HTTP security headers. |
+| **`test_transactions_suite.py`** | Data & Multi-Tenancy | Transaction creation, strict user tenant isolation, income/expense/net-worth calculation. |
+| **`test_budgets_suite.py`** | Budgets & Goals | Budget line item CRUD, due date validation, payment toggle, user scoping. |
+| **`test_forecasting_suite.py`** | AI & Forecasting Math | IQR-based anomaly detection & outlier smoothing, 6-month growth horizons, confidence bounds. |
+| **`test_reconciliation_suite.py`** | Bank Reconciliation | Synthetic statement generator, fuzzy vendor matching, timing discrepancy simulations. |
+
+---
+
 ## 🔑 AI Setup (BYOK)
 
 This application supports seamless zero-config local operation, or enhanced AI features using your personal Gemini API key:
