@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Plus, Check, Trash2, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
+import { useCurrency } from '../context/CurrencyContext';
 
 const Budget = () => {
+    const { formatMoney, convertToBaseCurrency } = useCurrency();
     const [budgets, setBudgets] = useState([]);
     const [newBudget, setNewBudget] = useState({ title: '', amount: '', due_date: '' });
     const [loading, setLoading] = useState(true);
@@ -35,7 +37,7 @@ const Budget = () => {
             // Explicitly ensuring ISO string might be safer for python datetime.
             const budgetData = {
                 ...newBudget,
-                amount: parseFloat(newBudget.amount),
+                amount: convertToBaseCurrency(parseFloat(newBudget.amount)),
                 due_date: new Date(newBudget.due_date).toISOString(),
                 is_paid: false
             };
@@ -129,7 +131,7 @@ const Budget = () => {
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-xl font-bold text-white">${item.amount.toFixed(2)}</div>
+                                    <div className="text-xl font-bold text-white">{formatMoney(item.amount)}</div>
                                     <div className={`text-sm ${item.is_paid ? 'text-emerald-400' : 'text-orange-400'}`}>
                                         {item.is_paid ? 'Paid' : 'Pending'}
                                     </div>

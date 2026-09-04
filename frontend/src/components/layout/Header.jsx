@@ -15,11 +15,13 @@ const Header = ({ title = "Dashboard" }) => {
     const searchRef = useRef(null);
 
     const searchablePages = [
-        { name: 'Dashboard', path: '/' },
+        { name: 'Dashboard', path: '/dashboard' },
         { name: 'Transactions', path: '/transactions' },
+        { name: 'Payments', path: '/payments' },
         { name: 'Budgets', path: '/budgets' },
         { name: 'Analytics', path: '/analytics' },
-        { name: 'Settings', path: '/settings' }
+        { name: 'Settings', path: '/settings' },
+        { name: 'Overview / Landing', path: '/' }
     ];
 
     const filteredPages = searchablePages.filter(page =>

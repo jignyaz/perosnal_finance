@@ -17,6 +17,9 @@ class User(SQLModel, table=True):
     financial_goal: str = Field(default="balanced") # savings, balanced, lifestyle
     risk_tolerance: float = Field(default=1.0)
     plaid_access_token: Optional[str] = None
+    gemini_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = None
+    preferred_llm_provider: str = Field(default="gemini")
     password_hash: str
 
 class UserCreate(SQLModel):
@@ -31,6 +34,7 @@ class UserCreate(SQLModel):
     employment_type: str = "salaried"
     financial_goal: str = "balanced"
     risk_tolerance: float = 1.0
+    preferred_llm_provider: str = "gemini"
 
 class UserUpdate(SQLModel):
     full_name: Optional[str] = None
@@ -44,6 +48,9 @@ class UserUpdate(SQLModel):
     financial_goal: Optional[str] = None
     risk_tolerance: Optional[float] = None
     plaid_access_token: Optional[str] = None
+    gemini_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = None
+    preferred_llm_provider: Optional[str] = None
 
 class Transaction(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

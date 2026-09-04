@@ -1,29 +1,11 @@
 import { useState, useMemo } from 'react';
 import { X, RefreshCw, Calculator, TrendingUp, Globe2, ArrowRightLeft } from 'lucide-react';
+import { useCurrency } from '../../context/CurrencyContext';
 
 const CurrencyExchangeModal = ({ isOpen, onClose }) => {
     const [amount, setAmount] = useState('1000');
     const [selectedCurrency, setSelectedCurrency] = useState('USD');
-
-    // Simulated market rates (referenced to 1 INR)
-    const rates = useMemo(() => ({
-        // Global
-        'USD': 0.012,
-        'EUR': 0.011,
-        'GBP': 0.0094,
-        // Asian
-        'JPY': 1.82,
-        'CNY': 0.086,
-        'SGD': 0.016,
-        'KRW': 15.68,
-        'AED': 0.044,
-        // African
-        'ZAR': 0.23,
-        'EGP': 0.58,
-        'NGN': 18.24,
-        'KES': 1.56,
-        'GHS': 0.18
-    }), []);
+    const { rates } = useCurrency();
 
     const currencies = [
         { code: 'USD', label: 'US Dollar', group: 'Global' },

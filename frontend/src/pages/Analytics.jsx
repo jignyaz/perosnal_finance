@@ -3,8 +3,10 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { api } from '../services/api';
 import { TrendingUp, PieChart as PieChartIcon, Sparkles, AlertTriangle } from 'lucide-react';
 import AIAdvisor from '../components/AIAdvisor';
+import { useCurrency } from '../context/CurrencyContext';
 
 const Analytics = () => {
+    const { currency, convertAmount } = useCurrency();
     const [transactions, setTransactions] = useState([]);
     const [predictionData, setPredictionData] = useState(null);
     const [predictionV2, setPredictionV2] = useState(null);
@@ -41,7 +43,7 @@ const Analytics = () => {
 
     const categoryData = Object.entries(expensesByCategory).map(([name, value]) => ({
         name,
-        value,
+        value: convertAmount(value),
     }));
 
     // Calculate Monthly Average or Trend (Simplistic daily for now based on data)
@@ -54,14 +56,28 @@ const Analytics = () => {
         return acc;
     }, {});
 
-    // Sort by date roughly
-    const trendData = Object.values(trendDataMap).sort((a, b) => new Date(a.date) - new Date(b.date));
+    // Sort by date roughly and convert
+    const trendData = Object.values(trendDataMap)
+        .map(item => ({
+            ...item,
+            income: convertAmount(item.income),
+            expense: convertAmount(item.expense)
+        }))
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
     // Use v2 prediction if available (LangChain enhanced), fallback to v1
     const activePrediction = predictionV2 || predictionData;
     const ai = predictionV2?.ai_enhancement;
+
+    // Convert prediction bounds
+    const convertedPredictions = activePrediction?.predictions?.map(item => ({
+        ...item,
+        predicted_amount: convertAmount(item.predicted_amount),
+        lower_bound: convertAmount(item.lower_bound),
+        upper_bound: convertAmount(item.upper_bound)
+    }));
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -126,9 +142,10 @@ const Analytics = () => {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} />
                                     <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value}`} />
+                                    <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${currency.symbol}${value}`} />
                                     <Tooltip
                                         contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px', color: '#fff' }}
+                                        formatter={(value) => [`${currency.symbol}${parseFloat(value).toLocaleString()}`, '']}
                                     />
                                     <Area type="monotone" dataKey="income" stroke="#10b981" fillOpacity={1} fill="url(#colorIncome)" />
                                     <Area type="monotone" dataKey="expense" stroke="#ef4444" fillOpacity={1} fill="url(#colorExpense)" />
@@ -178,10 +195,10 @@ const Analytics = () => {
                                 </div>
                             )}
 
-                            {activePrediction && activePrediction.predictions ? (
+                            {activePrediction && convertedPredictions ? (
                                 <div className="h-[300px] w-full">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={activePrediction.predictions}>
+                                        <AreaChart data={convertedPredictions}>
                                             <defs>
                                                 <linearGradient id="colorPrediction" x1="0" y1="0" x2="0" y2="1">
                                                     <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.8} />
@@ -190,10 +207,10 @@ const Analytics = () => {
                                             </defs>
                                             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} />
                                             <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                            <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value}`} />
+                                            <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${currency.symbol}${value}`} />
                                             <Tooltip
                                                 contentStyle={{ backgroundColor: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
-                                                formatter={(value) => [`₹${value.toFixed(2)}`, 'Predicted']}
+                                                formatter={(value) => [`${currency.symbol}${value.toFixed(2)}`, 'Predicted']}
                                             />
                                             <Area type="monotone" dataKey="upper_bound" stroke="none" fill="#38bdf8" fillOpacity={0.1} />
                                             <Area type="monotone" dataKey="lower_bound" stroke="none" fill="#0F172A" fillOpacity={1} />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Wallet, PieChart, ReceiptText, Settings, Zap, LogOut } from 'lucide-react';
+import { LayoutDashboard, Wallet, PieChart, ReceiptText, Settings, Zap, LogOut, Globe } from 'lucide-react';
 import { api } from '../../services/api';
 import { useCurrency } from '../../context/CurrencyContext';
 
@@ -23,17 +23,18 @@ const Sidebar = () => {
     }, [location.pathname]);
 
     const navItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+        { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
         { icon: Wallet, label: 'Transactions', path: '/transactions' },
         { icon: Zap, label: 'Payments', path: '/payments' },
         { icon: PieChart, label: 'Analytics', path: '/analytics' },
         { icon: ReceiptText, label: 'Budgets', path: '/budgets' },
         { icon: Settings, label: 'Settings', path: '/settings' },
+        { icon: Globe, label: 'Overview', path: '/' },
     ];
 
     return (
-        <aside className="w-72 h-screen flex flex-col p-4 pr-0 hidden md:flex z-50">
-            <div className="flex-1 glass-panel flex flex-col p-6 border-white/5 relative overflow-hidden">
+        <aside className="w-72 h-full flex flex-col hidden md:flex z-50">
+            <div className="flex-1 glass-panel flex flex-col p-6 rounded-[2rem] border-white/5 relative overflow-hidden">
                 {/* Background decorative glow */}
                 <div className="absolute -top-10 -left-10 w-32 h-32 bg-accent/20 blur-3xl rounded-full pointer-events-none"></div>
 

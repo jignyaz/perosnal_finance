@@ -39,7 +39,7 @@ const Register = () => {
         try {
             await register(formData);
             await login(formData.username, formData.password);
-            navigate('/');
+            navigate('/dashboard');
         } catch (err) {
             if (err.message === 'Failed to fetch') {
                 setError('Connection Refused: The backend server is not running. Please double-click "start.bat" in the project folder to start the API.');
@@ -67,6 +67,13 @@ const Register = () => {
             <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-accent-blue/10 blur-[120px] rounded-full translate-y-1/2 -translate-x-1/2"></div>
 
             <div className="w-full max-w-xl p-10 glass-panel border-white/5 relative z-10 animate-in fade-in zoom-in duration-700">
+                {/* Back to Home Link */}
+                <div className="mb-6">
+                    <Link to="/" className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-accent transition-colors">
+                        ← Back to Overview
+                    </Link>
+                </div>
+
                 <div className="absolute top-0 right-0 p-6 opacity-10">
                     <Sparkles className="w-20 h-20 text-accent animate-pulse" />
                 </div>

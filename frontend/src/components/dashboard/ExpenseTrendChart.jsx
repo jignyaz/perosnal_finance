@@ -18,7 +18,7 @@ const CustomTooltip = ({ active, payload, label, currency }) => {
 };
 
 const ExpenseTrendChart = ({ transactions = [] }) => {
-    const { currency } = useCurrency();
+    const { currency, convertAmount } = useCurrency();
 
     const chartData = useMemo(() => {
         if (!transactions) return [];
@@ -49,13 +49,13 @@ const ExpenseTrendChart = ({ transactions = [] }) => {
 
             data.push({
                 name: current.toLocaleDateString(undefined, { month: 'short', day: '2-digit' }),
-                amount: dailyMap[key] || 0,
+                amount: convertAmount(dailyMap[key] || 0),
                 fullDate: key
             });
         }
 
         return data;
-    }, [transactions]);
+    }, [transactions, convertAmount]);
 
     return (
         <div className="w-full h-full">

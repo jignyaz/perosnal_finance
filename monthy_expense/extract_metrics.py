@@ -32,36 +32,59 @@ def get_nn_forecast(model, scaler, base_residuals, n_forecast, window=3):
     return scaler.inverse_transform(np.array(forecasts_scaled).reshape(-1, 1)).flatten()
 
 # 1. Load Data
-test_df = pd.read_csv('data/processed/test_monthly.csv')
+if os.path.exists('data/processed'):
+    data_dir = 'data/processed'
+elif os.path.exists('monthy_expense/data/processed'):
+    data_dir = 'monthy_expense/data/processed'
+else:
+    data_dir = '.'
+
+test_path = os.path.join(data_dir, 'test_weekly.csv') if os.path.exists(os.path.join(data_dir, 'test_weekly.csv')) else os.path.join(data_dir, 'test_weekly1.csv')
+train_path = os.path.join(data_dir, 'train_weekly.csv') if os.path.exists(os.path.join(data_dir, 'train_weekly.csv')) else os.path.join(data_dir, 'train_weekly1.csv')
+
+test_df = pd.read_csv(test_path)
 test_df['date'] = pd.to_datetime(test_df['date'])
 test_df.set_index('date', inplace=True)
 test_actuals = test_df['amount']
 
-train_df = pd.read_csv('data/processed/train_monthly.csv')
+train_df = pd.read_csv(train_path)
 train_actuals = train_df['amount'].values
 
 # 2. Load Models
-with open('models/arima_hybrid_base.pkl', 'rb') as f:
+if os.path.exists('models'):
+    model_dir = 'models'
+elif os.path.exists('monthy_expense/models'):
+    model_dir = 'monthy_expense/models'
+else:
+    model_dir = '.'
+
+with open(os.path.join(model_dir, 'arima_hybrid_base.pkl'), 'rb') as f:
     arima_res = pickle.load(f)
-with open('models/ets_hybrid_base.pkl', 'rb') as f:
+with open(os.path.join(model_dir, 'ets_hybrid_base.pkl'), 'rb') as f:
     ets_res = pickle.load(f)
 
-lstm_res_model = tf.keras.models.load_model('models/lstm_arima_residuals.h5', compile=False)
-gru_res_model = tf.keras.models.load_model('models/gru_ets_residuals.h5', compile=False)
+lstm_res_model = tf.keras.models.load_model(os.path.join(model_dir, 'lstm_arima_residuals.h5'), compile=False)
+gru_res_model = tf.keras.models.load_model(os.path.join(model_dir, 'gru_ets_residuals.h5'), compile=False)
 
-with open('models/scaler_arima.pkl', 'rb') as f:
+with open(os.path.join(model_dir, 'scaler_arima.pkl'), 'rb') as f:
     scaler_arima = pickle.load(f)
-with open('models/scaler_ets.pkl', 'rb') as f:
+with open(os.path.join(model_dir, 'scaler_ets.pkl'), 'rb') as f:
     scaler_ets = pickle.load(f)
 
 # 3. Generate Predictions
 n_test = len(test_actuals)
-arima_preds = arima_res.forecast(n_test).values
-ets_preds = ets_res.forecast(n_test).values
+arima_fc = arima_res.forecast(n_test)
+arima_preds = arima_fc.values if hasattr(arima_fc, 'values') else np.array(arima_fc)
+
+ets_fc = ets_res.forecast(n_test)
+ets_preds = ets_fc.values if hasattr(ets_fc, 'values') else np.array(ets_fc)
 
 # Residuals for inference
-arima_train_res = train_actuals - arima_res.fittedvalues.values
-ets_train_res = train_actuals - ets_res.fittedvalues.values
+arima_fitted = arima_res.fittedvalues.values if hasattr(arima_res.fittedvalues, 'values') else np.array(arima_res.fittedvalues)
+ets_fitted = ets_res.fittedvalues.values if hasattr(ets_res.fittedvalues, 'values') else np.array(ets_res.fittedvalues)
+
+arima_train_res = train_actuals - arima_fitted
+ets_train_res = train_actuals - ets_fitted
 
 lstm_res_forecast = get_nn_forecast(lstm_res_model, scaler_arima, arima_train_res, n_test)
 gru_res_forecast = get_nn_forecast(gru_res_model, scaler_ets, ets_train_res, n_test)
@@ -71,6 +94,20 @@ hybrid_ets_gru = ets_preds + gru_res_forecast
 
 # Master Ensemble
 master_forecast = (0.4 * arima_preds + 0.3 * ets_preds + 0.15 * hybrid_arima_lstm + 0.15 * hybrid_ets_gru)
+
+# Load Prophet Model
+prophet_model = None
+prophet_path = 'models/prophet_base.pkl' if os.path.exists('models/prophet_base.pkl') else 'monthy_expense/models/prophet_base.pkl'
+if os.path.exists(prophet_path):
+    with open(prophet_path, 'rb') as f:
+        prophet_model = pickle.load(f)
+
+if prophet_model is not None:
+    future_prophet = pd.DataFrame({'ds': test_df.index})
+    prophet_fc = prophet_model.predict(future_prophet)
+    prophet_preds = prophet_fc['yhat'].clip(lower=0).values
+else:
+    prophet_preds = np.zeros(n_test)
 
 # 4. Calculate Metrics
 results = []
@@ -83,6 +120,8 @@ def add_stat(name, pred):
 
 add_stat('ARIMA (Base)', arima_preds)
 add_stat('ETS (Base)', ets_preds)
+if prophet_model is not None:
+    add_stat('Prophet (Base)', prophet_preds)
 add_stat('Hybrid (ARIMA + LSTM)', hybrid_arima_lstm)
 add_stat('Hybrid (ETS + GRU)', hybrid_ets_gru)
 add_stat('Master Ensemble', master_forecast)

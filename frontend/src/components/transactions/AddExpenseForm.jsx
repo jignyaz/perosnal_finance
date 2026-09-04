@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Plus, Calendar, Clock, Tag, DollarSign, Type } from 'lucide-react';
+import { Plus, Calendar, Clock, Tag, Type } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
+import { useCurrency } from '../../context/CurrencyContext';
 
 const AddExpenseForm = ({ onAddExpense }) => {
     const { addNotification } = useNotifications();
+    const { currency } = useCurrency();
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
@@ -29,7 +31,7 @@ const AddExpenseForm = ({ onAddExpense }) => {
         // Reset form partially
         setFormData(prev => ({ ...prev, description: '', amount: '' }));
 
-        addNotification('Transaction Added', `Successfully added ${formData.category} expense: $${formData.amount}`, 'success');
+        addNotification('Transaction Added', `Successfully added ${formData.category} expense: ${currency.symbol}${formData.amount}`, 'success');
     };
 
     const handleChange = (e) => {
@@ -114,7 +116,9 @@ const AddExpenseForm = ({ onAddExpense }) => {
                 <div className="space-y-1">
                     <label className="text-xs text-slate-400 ml-1">Amount</label>
                     <div className="relative group">
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-accent transition-colors" />
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-accent transition-colors text-sm font-bold w-4 h-4 flex items-center justify-center">
+                            {currency.symbol}
+                        </div>
                         <input
                             type="number"
                             name="amount"

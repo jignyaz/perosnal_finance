@@ -22,6 +22,9 @@ EXPECTED_USER_COLUMNS = [
     ("financial_goal",      "TEXT",    "'balanced'"),
     ("risk_tolerance",      "REAL",    "1.0"),
     ("plaid_access_token",  "TEXT",    "NULL"),
+    ("gemini_api_key",      "TEXT",    "NULL"),
+    ("groq_api_key",        "TEXT",    "NULL"),
+    ("preferred_llm_provider", "TEXT",  "'gemini'"),
 ]
 
 def migrate():
@@ -38,10 +41,10 @@ def migrate():
             sql = f"ALTER TABLE user ADD COLUMN {col_name} {col_type} DEFAULT {col_default}"
             cursor.execute(sql)
             added.append(col_name)
-            print(f"  ✓ Added missing column: {col_name}")
+            print(f"  [SUCCESS] Added missing column: {col_name}")
 
     if not added:
-        print("  ✓ All columns already present. No migration needed.")
+        print("  [SUCCESS] All columns already present. No migration needed.")
 
     conn.commit()
     conn.close()

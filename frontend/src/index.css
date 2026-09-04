@@ -1,18 +1,17 @@
+@import url('https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 @theme {
-  --color-primary: #020617;
-  --color-secondary: #0f172a;
-  --color-accent: #8b5cf6;
-  /* Vibrant violet */
-  --color-accent-blue: #0ea5e9;
-  /* Cyan highlight */
+  --color-primary: #030108;
+  --color-secondary: #080612;
+  --color-accent: #00ffcc; /* Cyber Cyan */
+  --color-accent-blue: #bd00ff; /* Neon Violet */
   --color-glass-white: rgba(255, 255, 255, 0.03);
   --color-glass-border: rgba(255, 255, 255, 0.08);
 
-  --font-display: "Outfit", sans-serif;
-  --font-body: "Plus Jakarta Sans", sans-serif;
+  --font-display: "Clash Display", sans-serif;
+  --font-body: "Inter", sans-serif;
 }
 
 :root {
@@ -22,9 +21,9 @@
 body {
   background-color: var(--color-primary);
   background-image:
-    radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.12) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.08) 0px, transparent 50%),
-    radial-gradient(at 50% 100%, rgba(139, 92, 246, 0.05) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(189, 0, 255, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(0, 255, 204, 0.12) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(189, 0, 255, 0.08) 0px, transparent 50%);
   color: #f8fafc;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
@@ -51,9 +50,9 @@ h4,
 
 .glass-panel:hover {
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(0, 255, 204, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 15px 35px -10px rgba(0, 255, 204, 0.15), 0 0 30px -5px rgba(189, 0, 255, 0.1);
 }
 
 /* Premium Animations */
@@ -72,7 +71,6 @@ h4,
 }
 
 @keyframes bounce-slow {
-
   0%,
   100% {
     transform: translateY(-3%);
@@ -87,6 +85,83 @@ h4,
 
 .animate-bounce-slow {
   animation: bounce-slow 4s infinite ease-in-out;
+}
+
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(1deg);
+  }
+}
+
+.animate-float {
+  animation: float-slow 6s infinite ease-in-out;
+}
+
+@keyframes float-reverse {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(12px) rotate(-1deg);
+  }
+}
+
+.animate-float-reverse {
+  animation: float-reverse 7s infinite ease-in-out;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.08);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 5s infinite ease-in-out;
+}
+
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-flow {
+  background-size: 200% 200%;
+  animation: gradient-flow 6s ease infinite;
+}
+
+@keyframes wave-dash {
+  to {
+    stroke-dashoffset: -200;
+  }
+}
+
+.animate-wave-dash {
+  stroke-dasharray: 8 6;
+  animation: wave-dash 12s linear infinite;
+}
+
+/* Cyber Grid Background */
+.cyber-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
 /* Scrollbar Style */

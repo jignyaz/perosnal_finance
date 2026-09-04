@@ -48,6 +48,7 @@ frontend/build/
 .pnp.js
 
 # === Logs ===
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -66,3 +67,5 @@ desktop.ini
 *.zip
 arima(acf_pacf).png
 synthetic_test_data.csv
+synthetic_bank_statement.csv
+backend/static/

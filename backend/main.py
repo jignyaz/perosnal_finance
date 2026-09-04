@@ -1,17 +1,36 @@
 import os
 import io
 import csv
-from dotenv import load_dotenv
 
-# Load `.env` file variables so API keys can be used
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError as e:
+    import sys
+    print("DIAGNOSTICS - ImportError:", e, flush=True)
+    print("DIAGNOSTICS - sys.path:", sys.path, flush=True)
+    print("DIAGNOSTICS - os.environ:", dict(os.environ), flush=True)
+    # List contents of PYTHONPATH directories
+    pythonpath = os.environ.get("PYTHONPATH", "")
+    for path in pythonpath.split(":"):
+        if os.path.exists(path):
+            try:
+                print(f"DIAGNOSTICS - Contents of {path}:", os.listdir(path), flush=True)
+            except Exception as ex:
+                print(f"DIAGNOSTICS - Error listing {path}: {ex}", flush=True)
+        else:
+            print(f"DIAGNOSTICS - {path} does not exist", flush=True)
+    raise
 
 # Suppress TensorFlow logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
+from pathlib import Path
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlmodel import Session, select
 from typing import List, Optional
 try:
@@ -39,6 +58,7 @@ from models import User, Transaction, BudgetItem, UserUpdate, TransactionCreate,
 from auth import get_current_user, create_access_token, get_password_hash, verify_password, ACCESS_TOKEN_EXPIRE_MINUTES
 from datetime import timedelta, datetime
 import plaid_integration as plaid_helper
+from crypto import encrypt_value, decrypt_value, mask_api_key, ensure_encryption_secret_in_env
 
 try:
     from langchain_engine import run_langchain_enhancement, generate_chat_response, _get_llm, build_financial_context
@@ -106,6 +126,14 @@ def load_ai_assets():
 
 @app.on_event("startup")
 def on_startup():
+    # Auto-generate ENCRYPTION_SECRET if not present
+    env_path = os.path.join(os.path.dirname(__file__), ".env")
+    ensure_encryption_secret_in_env(env_path)
+    try:
+        from migrate_db import migrate as run_db_migration
+        run_db_migration()
+    except Exception as e:
+        print(f"Database migration failed: {e}")
     create_db_and_tables()
     load_ai_assets()
 
@@ -181,24 +209,61 @@ def register(user_data: UserCreate, session: Session = Depends(get_session)):
             raise e
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/users/me", response_model=User)
+@app.get("/users/me")
 async def read_users_me(current_user: User = Depends(get_current_user)):
-    return current_user
+    # Mask the encrypted API keys before sending to frontend
+    user_dict = current_user.dict()
+    if user_dict.get("gemini_api_key"):
+        decrypted = decrypt_value(user_dict["gemini_api_key"])
+        user_dict["gemini_api_key"] = mask_api_key(decrypted)
+    if user_dict.get("groq_api_key"):
+        decrypted = decrypt_value(user_dict["groq_api_key"])
+        user_dict["groq_api_key"] = mask_api_key(decrypted)
+    return user_dict
 
-@app.put("/users/me", response_model=User)
+@app.put("/users/me")
 async def update_user(user_update: UserUpdate, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     user_db = session.get(User, current_user.id)
     if not user_db:
         raise HTTPException(status_code=404, detail="User not found")
         
     user_data = user_update.dict(exclude_unset=True)
+    
+    # Encrypt the Gemini API key before storing in DB
+    if "gemini_api_key" in user_data and user_data["gemini_api_key"]:
+        raw_key = user_data["gemini_api_key"]
+        # Don't re-encrypt if user sent back a masked value (e.g. "AIza...227E")
+        if "..." not in raw_key:
+            user_data["gemini_api_key"] = encrypt_value(raw_key)
+        else:
+            # User didn't change the key, remove from update
+            del user_data["gemini_api_key"]
+
+    # Encrypt the Groq API key before storing in DB
+    if "groq_api_key" in user_data and user_data["groq_api_key"]:
+        raw_key = user_data["groq_api_key"]
+        if "..." not in raw_key:
+            user_data["groq_api_key"] = encrypt_value(raw_key)
+        else:
+            # User didn't change the key, remove from update
+            del user_data["groq_api_key"]
+    
     for key, value in user_data.items():
         setattr(user_db, key, value)
         
     session.add(user_db)
     session.commit()
     session.refresh(user_db)
-    return user_db
+    
+    # Return masked response
+    result = user_db.dict()
+    if result.get("gemini_api_key"):
+        decrypted = decrypt_value(result["gemini_api_key"])
+        result["gemini_api_key"] = mask_api_key(decrypted)
+    if result.get("groq_api_key"):
+        decrypted = decrypt_value(result["groq_api_key"])
+        result["groq_api_key"] = mask_api_key(decrypted)
+    return result
 
 # --- App Endpoints ---
 
@@ -532,7 +597,10 @@ def predict_expenses_v2(session: Session = Depends(get_session), current_user: U
                 monthly_expenses=monthly_data,
                 category_breakdown=category_data,
                 user_profile=user_profile,
-                baseline_prediction=baseline
+                baseline_prediction=baseline,
+                api_key=decrypt_value(current_user.gemini_api_key or "") if current_user.gemini_api_key else "",
+                provider=current_user.preferred_llm_provider or "gemini",
+                groq_api_key=decrypt_value(current_user.groq_api_key or "") if current_user.groq_api_key else ""
             )
             # Use the AI-adjusted prediction as the new baseline
             if ai_result.get("langchain_active") and ai_result.get("adjusted_prediction"):
@@ -592,12 +660,40 @@ def chat_with_ai(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
-    """Natural language Q&A about the user's finances using Gemini."""
-    api_key = os.getenv("GOOGLE_API_KEY", "")
+    """Natural language Q&A about the user's finances using Gemini or Groq."""
     if not LANGCHAIN_LOADED:
-        return {"response": "Gemini AI engine is not available."}
-    if not api_key:
-        return {"response": "Gemini API key not configured. Add GOOGLE_API_KEY to your backend/.env file and restart the server."}
+        return {"response": "AI engine is not available."}
+
+    # Determine provider and keys
+    provider = current_user.preferred_llm_provider or "gemini"
+    
+    user_gemini = decrypt_value(current_user.gemini_api_key or "") if current_user.gemini_api_key else ""
+    user_groq = decrypt_value(current_user.groq_api_key or "") if current_user.groq_api_key else ""
+    
+    env_gemini = os.getenv("GOOGLE_API_KEY", "")
+    env_groq = os.getenv("GROQ_API_KEY", "")
+    
+    gemini_key = user_gemini or env_gemini
+    groq_key = user_groq or env_groq
+    
+    actual_provider = provider
+    actual_key = ""
+    
+    if provider == "groq":
+        if groq_key:
+            actual_key = groq_key
+        elif gemini_key:
+            actual_provider = "gemini"
+            actual_key = gemini_key
+    else:  # gemini
+        if gemini_key:
+            actual_key = gemini_key
+        elif groq_key:
+            actual_provider = "groq"
+            actual_key = groq_key
+            
+    if not actual_key:
+        return {"response": "No API key found. Please add a Gemini or Groq API key in Settings → AI Configuration."}
 
     # Build context from the user's transactions
     transactions = session.exec(select(Transaction).where(Transaction.user_id == current_user.id)).all()
@@ -645,5 +741,23 @@ def chat_with_ai(
     full_context = f"{context}\n\nACTIVE BUDGETS:\n{budget_str if budget_str else 'No active budgets set.'}\n\nCURRENT VIEW: {request.current_page}"
     tx_summary = f"Total income: ₹{total_income:,.0f} | Total expenses: ₹{total_expense:,.0f} | Net: ₹{total_income - total_expense:,.0f}"
 
-    response = generate_chat_response(request.message, full_context, tx_summary, api_key)
+    response = generate_chat_response(request.message, full_context, tx_summary, actual_key, actual_provider)
     return {"response": response}
+
+# --- Serve Frontend Static Files ---
+# Mount the React frontend's built dist/ folder.
+# This MUST come after all API routes to avoid shadowing them.
+FRONTEND_DIR = Path(__file__).parent / "static"
+if FRONTEND_DIR.exists() and (FRONTEND_DIR / "index.html").exists():
+    # Serve static assets (JS, CSS, images)
+    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIR / "assets")), name="frontend-assets")
+
+    # Catch-all route for React Router (SPA client-side routing)
+    @app.get("/{full_path:path}")
+    async def serve_frontend(request: Request, full_path: str):
+        # Serve actual files if they exist (e.g., favicon.ico, robots.txt)
+        file_path = FRONTEND_DIR / full_path
+        if file_path.is_file():
+            return FileResponse(str(file_path))
+        # Otherwise return index.html for React Router
+        return FileResponse(str(FRONTEND_DIR / "index.html"))

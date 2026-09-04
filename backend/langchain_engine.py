@@ -86,6 +86,47 @@ def _call_with_fallback(system_prompt: str, user_prompt: str, api_key: str, ctx:
         data = json.loads(resp.read().decode("utf-8"))
         return data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
+def _call_groq(system_prompt: str, user_prompt: str, api_key: str) -> str:
+    """Make a direct REST call to Groq. Returns raw text response."""
+    # Create an SSL context that bypasses verification for Windows stability
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    payload = json.dumps({
+        "model": "llama-3.3-70b-versatile",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        "temperature": 0.2,
+        "max_tokens": 1024
+    }).encode("utf-8")
+
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        },
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=15, context=ctx) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return data["choices"][0]["message"]["content"].strip()
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8")
+        print(f"Groq HTTP Error {e.code}: {body}")
+        raise
+    except Exception as e:
+        print(f"Groq call failed: {e}")
+        raise
+
+
 
 # ─── anomaly detection (no LLM needed) ────────────────────────────────────────
 
@@ -166,7 +207,8 @@ ENSEMBLE MODEL PREDICTION: \u20b9{baseline_prediction:,.0f}"""
 def get_prediction_adjustment(
     context: str,
     api_key: str,
-    baseline: float
+    baseline: float,
+    provider: str = "gemini"
 ) -> Dict[str, Any]:
     system_prompt = (
         "You are a precise financial analyst AI. Analyze spending patterns and suggest "
@@ -186,7 +228,11 @@ Return EXACTLY this JSON:
 }}"""
 
     try:
-        raw = _call_gemini(system_prompt, user_prompt, api_key)
+        if provider == "groq":
+            raw = _call_groq(system_prompt, user_prompt, api_key)
+        else:
+            raw = _call_gemini(system_prompt, user_prompt, api_key)
+            
         raw = re.sub(r"```json\s*|\s*```", "", raw).strip()
         result = json.loads(raw)
 
@@ -197,15 +243,16 @@ Return EXACTLY this JSON:
         return result
 
     except Exception as e:
-        print(f"Gemini adjustment failed: {e}")
+        print(f"{provider.capitalize()} adjustment failed: {e}")
         return {
             "adjustment_percent": 0.0,
             "confidence": 0.0,
-            "reasoning": "AI analysis unavailable — using ensemble prediction as-is.",
+            "reasoning": f"AI analysis ({provider}) unavailable — using ensemble prediction as-is.",
             "category_insights": [],
             "risk_flag": False,
             "adjusted_prediction": baseline
         }
+
 
 
 # ─── chat ─────────────────────────────────────────────────────────────────────
@@ -214,7 +261,8 @@ def generate_chat_response(
     question: str,
     context: str,
     transaction_summary: str,
-    api_key: str
+    api_key: str,
+    provider: str = "gemini"
 ) -> str:
     system_prompt = (
         "You are a friendly, professional Global Financial Concierge for a personal finance dashboard. "
@@ -240,9 +288,13 @@ Transactions summary:
 User question: {question}"""
 
     try:
-        return _call_gemini(system_prompt, user_prompt, api_key)
+        if provider == "groq":
+            return _call_groq(system_prompt, user_prompt, api_key)
+        else:
+            return _call_gemini(system_prompt, user_prompt, api_key)
     except Exception as e:
-        return f"Sorry, I couldn\u2019t process that right now. Please check your GOOGLE_API_KEY in .env."
+        return f"Sorry, I couldn\u2019t process that right now. Please check your API key in settings."
+
 
 
 # ─── main entry point ─────────────────────────────────────────────────────────
@@ -251,25 +303,51 @@ def run_langchain_enhancement(
     monthly_expenses: Dict[str, float],
     category_breakdown: Dict[str, float],
     user_profile: Dict[str, Any],
-    baseline_prediction: float
+    baseline_prediction: float,
+    api_key: str = "",
+    provider: str = "gemini",
+    groq_api_key: str = ""
 ) -> Dict[str, Any]:
     """
-    Full Gemini AI pipeline:
+    Full AI pipeline (Gemini or Groq):
       1. Statistical anomaly detection
       2. Context building
       3. LLM-based prediction adjustment
     """
-    api_key = os.getenv("GOOGLE_API_KEY", "")
-
     # Step 1 — anomaly detection (no API needed)
     cleaned_data, removed_anomalies = detect_and_remove_anomalies(monthly_expenses)
 
-    if not api_key:
+    # Determine the actual key and provider to use based on preferences and availability
+    actual_provider = provider
+    actual_key = ""
+
+    # Get env keys
+    env_gemini = os.getenv("GOOGLE_API_KEY", "")
+    env_groq = os.getenv("GROQ_API_KEY", "")
+
+    # Retrieve user keys or fallback to env keys
+    gemini_key = api_key or env_gemini
+    groq_key = groq_api_key or env_groq
+
+    if provider == "groq":
+        if groq_key:
+            actual_key = groq_key
+        elif gemini_key:
+            actual_provider = "gemini"
+            actual_key = gemini_key
+    else:  # gemini
+        if gemini_key:
+            actual_key = gemini_key
+        elif groq_key:
+            actual_provider = "groq"
+            actual_key = groq_key
+
+    if not actual_key:
         return {
             "adjusted_prediction": baseline_prediction,
             "adjustment_percent": 0.0,
             "confidence": 0.0,
-            "reasoning": "Add your GOOGLE_API_KEY to backend/.env to enable Gemini AI insights.",
+            "reasoning": "Add your API key to settings to enable AI forecasting insights.",
             "category_insights": [],
             "risk_flag": False,
             "anomalies_removed": removed_anomalies,
@@ -282,11 +360,13 @@ def run_langchain_enhancement(
     )
 
     # Step 3 — get LLM adjustment
-    result = get_prediction_adjustment(context, api_key, baseline_prediction)
+    result = get_prediction_adjustment(context, actual_key, baseline_prediction, actual_provider)
     result["anomalies_removed"] = removed_anomalies
     result["langchain_active"] = True
+    result["active_provider"] = actual_provider
 
     return result
+
 
 
 # ─── public helpers re-exported for main.py ───────────────────────────────────

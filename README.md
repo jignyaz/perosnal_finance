@@ -123,7 +123,7 @@ personal_finance/
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/jignyaz/personal_finance.git
+git clone https://github.com/jignyaz/perosnal_finance.git
 cd personal_finance
 ```
 

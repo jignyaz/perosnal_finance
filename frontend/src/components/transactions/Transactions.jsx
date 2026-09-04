@@ -6,7 +6,7 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { useNotifications } from '../../context/NotificationContext';
 
 const Transactions = () => {
-    const { formatMoney } = useCurrency();
+    const { formatMoney, convertToBaseCurrency } = useCurrency();
     const { addNotification } = useNotifications();
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -81,6 +81,7 @@ const Transactions = () => {
         try {
             const expenseData = {
                 ...newExpense,
+                amount: convertToBaseCurrency(newExpense.amount),
                 type: 'expense'
             };
             await api.createTransaction(expenseData);

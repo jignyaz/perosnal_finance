@@ -1,0 +1,2 @@
+model,MAE,RMSE,MAPE,RelErr
+Prophet,3195.74,3835.57,57.76,51.89

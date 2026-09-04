@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { X, Send, User, ShieldCheck, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { api } from '../../services/api';
+import { useCurrency } from '../../context/CurrencyContext';
 
 const TransferModal = ({ isOpen, onClose }) => {
+    const { currency, convertToBaseCurrency } = useCurrency();
     const [username, setUsername] = useState('');
     const [amount, setAmount] = useState('');
     const [step, setStep] = useState('input'); // input, confirm, processing, success
@@ -19,7 +21,7 @@ const TransferModal = ({ isOpen, onClose }) => {
         setError(null);
         try {
             await api.createTransaction({
-                amount: parseFloat(amount),
+                amount: convertToBaseCurrency(parseFloat(amount)),
                 category: 'Transfer',
                 type: 'expense',
                 description: `UPI Transfer to @${username}`,
@@ -73,7 +75,7 @@ const TransferModal = ({ isOpen, onClose }) => {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Liquidity Amount (INR)</label>
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Liquidity Amount ({currency.code})</label>
                             <input
                                 type="number"
                                 value={amount}
@@ -103,7 +105,7 @@ const TransferModal = ({ isOpen, onClose }) => {
                             </div>
                             <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-500 border-t border-white/5 pt-4">
                                 <span>Total Value</span>
-                                <span className="text-2xl font-display font-black text-white">₹{parseFloat(amount).toLocaleString()}</span>
+                                <span className="text-2xl font-display font-black text-white">{currency.symbol}{parseFloat(amount).toLocaleString()}</span>
                             </div>
                         </div>
 

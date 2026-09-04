@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bot, Send, X, Sparkles, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const AIAdvisor = ({ predictionData }) => {
+    const { user } = useAuth();
     const [open, setOpen] = useState(false);
     const [messages, setMessages] = useState([
         {
@@ -45,6 +47,8 @@ const AIAdvisor = ({ predictionData }) => {
 
     const ai = predictionData?.ai_enhancement;
     const hasInsights = ai && ai.langchain_active;
+
+    if (!user) return null;
 
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
