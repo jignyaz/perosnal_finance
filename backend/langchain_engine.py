@@ -10,6 +10,11 @@ import urllib.request
 import urllib.error
 import ssl
 from typing import Dict, Any, List, Tuple
+try:
+    from security import sanitize_pii
+except ImportError:
+    def sanitize_pii(text: str) -> str:
+        return text
 
 # Universal Gemini v1beta endpoint base
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
@@ -44,7 +49,9 @@ def _call_gemini(system_prompt: str, user_prompt: str, api_key: str) -> str:
     ctx.verify_mode = ssl.CERT_NONE
 
     model_id = _get_best_model(api_key, ctx)
-    merged_prompt = f"System Instructions: {system_prompt}\n\nUser Question: {user_prompt}"
+    # Apply PII sanitization to prevent sensitive data leakage
+    clean_user_prompt = sanitize_pii(user_prompt)
+    merged_prompt = f"System Instructions: {system_prompt}\n\nUser Question: {clean_user_prompt}"
     
     payload = json.dumps({
         "contents": [{"parts": [{"text": merged_prompt}]}],
@@ -97,7 +104,7 @@ def _call_groq(system_prompt: str, user_prompt: str, api_key: str) -> str:
         "model": "llama-3.3-70b-versatile",
         "messages": [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
+            {"role": "user", "content": sanitize_pii(user_prompt)}
         ],
         "temperature": 0.2,
         "max_tokens": 1024

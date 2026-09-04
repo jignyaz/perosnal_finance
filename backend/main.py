@@ -26,7 +26,7 @@ except ImportError as e:
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from pathlib import Path
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Request
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
@@ -55,10 +55,19 @@ except ImportError:
 
 from database import create_db_and_tables, get_session
 from models import User, Transaction, BudgetItem, UserUpdate, TransactionCreate, BudgetItemCreate, UserCreate
-from auth import get_current_user, create_access_token, get_password_hash, verify_password, ACCESS_TOKEN_EXPIRE_MINUTES
+from auth import (
+    get_current_user,
+    create_access_token,
+    get_password_hash,
+    verify_password,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    set_auth_cookie,
+    clear_auth_cookie
+)
 from datetime import timedelta, datetime
 import plaid_integration as plaid_helper
 from crypto import encrypt_value, decrypt_value, mask_api_key, ensure_encryption_secret_in_env
+from security import rate_limit, add_security_headers_to_response, sanitize_data_payload
 
 try:
     from langchain_engine import run_langchain_enhancement, generate_chat_response, _get_llm, build_financial_context
@@ -67,7 +76,18 @@ except Exception as e:
     print(f"Gemini AI engine not loaded: {e}")
     LANGCHAIN_LOADED = False
 
-app = FastAPI()
+app = FastAPI(
+    title="Personal Finance API",
+    description="Enterprise-grade AI-powered personal financial dashboard and forecasting backend",
+    version="2.0.0"
+)
+
+# ─── Security Headers Middleware ──────────────────────────────────────────────
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    add_security_headers_to_response(response)
+    return response
 
 app.add_middleware(
     CORSMiddleware,
@@ -139,8 +159,12 @@ def on_startup():
 
 # --- Auth Endpoints ---
 
-@app.post("/token")
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
+@app.post("/token", dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix="login"))])
+async def login_for_access_token(
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    session: Session = Depends(get_session)
+):
     user = session.exec(select(User).where(User.username == form_data.username)).first()
     if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
@@ -152,7 +176,16 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
+    # Set HttpOnly cookie for XSS-safe browser session
+    set_auth_cookie(response, access_token)
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.post("/logout")
+def logout(response: Response):
+    """Securely clear the HttpOnly access token cookie."""
+    clear_auth_cookie(response)
+    return {"message": "Successfully logged out"}
 
 # --- Plaid Endpoints ---
 
@@ -177,8 +210,8 @@ async def set_access_token(public_token: str, session: Session = Depends(get_ses
     session.refresh(current_user)
     return {"message": "Public token exchanged successfully", "item_id": response.get('item_id')}
 
-@app.post("/register")
-def register(user_data: UserCreate, session: Session = Depends(get_session)):
+@app.post("/register", dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix="register"))])
+def register(user_data: UserCreate, response: Response, session: Session = Depends(get_session)):
     try:
         # Check if user exists
         existing_user = session.exec(select(User).where(User.username == user_data.username)).first()
@@ -202,7 +235,15 @@ def register(user_data: UserCreate, session: Session = Depends(get_session)):
         session.add(new_user)
         session.commit()
         session.refresh(new_user)
-        return {"message": "User registered successfully"}
+
+        # Issue token and set cookie
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": new_user.username}, expires_delta=access_token_expires
+        )
+        set_auth_cookie(response, access_token)
+
+        return {"message": "User registered successfully", "access_token": access_token, "token_type": "bearer"}
     except Exception as e:
         print(f"Registration error: {e}")
         if isinstance(e, HTTPException):
@@ -546,7 +587,7 @@ def predict_expenses(session: Session = Depends(get_session), current_user: User
     }
 
 
-@app.get("/predict-expenses-v2")
+@app.get("/predict-expenses-v2", dependencies=[Depends(rate_limit(max_requests=20, window_seconds=60, key_prefix="predict_v2"))])
 def predict_expenses_v2(session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     """
     LangChain-enhanced prediction endpoint.
@@ -654,7 +695,7 @@ class ChatRequest(PydanticBaseModel):
     message: str
     current_page: Optional[str] = "/"
 
-@app.post("/chat")
+@app.post("/chat", dependencies=[Depends(rate_limit(max_requests=20, window_seconds=60, key_prefix="chat"))])
 def chat_with_ai(
     request: ChatRequest,
     session: Session = Depends(get_session),

@@ -14,16 +14,37 @@ export const api = {
         const response = await fetch(`${API_URL}/token`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            credentials: 'include',
             body: params,
         });
-        if (!response.ok) throw new Error('Login failed');
+        if (!response.ok) {
+            if (response.status === 429) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Too many attempts. Please wait a minute.');
+            }
+            throw new Error('Login failed: Invalid credentials');
+        }
         return response.json();
+    },
+
+    logout: async () => {
+        try {
+            await fetch(`${API_URL}/logout`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: getHeaders(),
+            });
+        } catch (e) {
+            console.warn('Backend logout call failed', e);
+        }
+        localStorage.removeItem('token');
     },
 
     register: async (userData) => {
         const response = await fetch(`${API_URL}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
                 username: userData.username,
                 password: userData.password,

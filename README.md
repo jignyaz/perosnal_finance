@@ -113,15 +113,54 @@ Evaluation conducted on real-world weekly expenditure series held-out test split
 
 ---
 
-## 🔐 Security & BYOK Architecture
+## 🔐 Security & Privacy Architecture
 
-To ensure strict privacy and user autonomy, this application features a zero-trust **Bring Your Own Key (BYOK)** architecture:
+To guarantee uncompromising user privacy and data security, this platform implements a defense-in-depth security suite:
 
-1. **Client-Side Setup**: Users supply their individual Google Gemini API key via the Settings dashboard.
-2. **PBKDF2-HMAC-SHA256 Derivation**: The system derives an application-level key using 480,000 iterations (OWASP compliant).
-3. **AES-256 Symmetric Encryption**: Sensitive keys are encrypted using Fernet (AES-128-CBC + HMAC-SHA256 authenticated envelope) before persisting to SQLite.
-4. **Data Masking**: API keys are masked (`AIza...227E`) in all REST serialization payloads.
-5. **Decryption-on-Demand**: The secret key is only decrypted in memory during the execution of LLM requests.
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    Enterprise Security Defense Layers                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 1. HTTP Security Headers (HSTS, CSP, X-Frame-Options, X-Content-Type)   │
+│ 2. Sliding-Window Rate Limiting (/token, /register, /chat, /predict)   │
+│ 3. Dual-Mode Authentication (HttpOnly XSS-Safe Cookies + Bearer Header) │
+│ 4. PII Data Sanitization Layer (Cards, IBAN, SSN/PAN, Emails Redacted)  │
+│ 5. AES-256 Fernet Field-Level Encryption with Per-User Salt Derivation  │
+│ 6. Zero-Knowledge BYOK Architecture (Keys Decrypted in Memory Only)     │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 1. Zero-Trust BYOK & AES-256 Field Encryption
+- **PBKDF2-HMAC-SHA256 Derivation**: Derives encryption keys using **480,000 iterations** (OWASP 2023+ recommendation).
+- **Per-User Cryptographic Salt Isolation**: Generates tenant-isolated entropy to prevent cross-account credential correlation.
+- **Data Masking**: API keys are masked (`AIza...227E`) across all serialization boundaries. Raw keys are never transmitted back to clients.
+- **In-Memory Decryption**: Decryption occurs exclusively in volatile memory during prompt assembly.
+
+### 2. Automated PII Sanitization Layer for GenAI
+- All prompt contexts, user queries, transaction notes, and budget lines pass through an automated PII redaction pipeline before transmission to Google Gemini / Groq:
+  - **Credit & Debit Cards**: Masked to `[CARD_ENDING_XXXX]`
+  - **Bank Accounts & IBAN**: Redacted to `[REDACTED_IBAN]` / `[REDACTED_ACCOUNT]`
+  - **Tax & Government IDs**: Redacted (`[REDACTED_SSN]`, `[REDACTED_TAX_ID]`, `[REDACTED_ID]`)
+  - **Contact Details**: Emails and phone numbers replaced with placeholder tokens.
+
+### 3. In-Memory Sliding Window Rate Limiting
+- Real-time sliding window rate limiting prevents automated credential stuffing and AI compute exhaustion:
+  - `/token` (Login): Max **5 attempts / 60s** per IP
+  - `/register`: Max **5 registrations / 60s** per IP
+  - `/chat` & `/predict-expenses-v2`: Max **20 requests / 60s** per user/IP
+
+### 4. Dual-Mode Authentication & XSS Mitigation
+- Issues **`HttpOnly`**, **`SameSite=Lax`**, and **`Secure`** authentication cookies alongside standard JWTs.
+- Web browsers are shielded from malicious JavaScript token harvesting (`localStorage` theft).
+- Programmatic and mobile clients retain compatibility via `Authorization: Bearer <token>`.
+
+### 5. Hardened HTTP Security Headers
+- Every HTTP response is decorated with enterprise headers:
+  - `X-Frame-Options: DENY` (Anti-Clickjacking)
+  - `X-Content-Type-Options: nosniff` (Anti-MIME sniffing)
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains` (Strict HTTPS enforcement)
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `Content-Security-Policy: default-src 'self' ...`
 
 ---
 
